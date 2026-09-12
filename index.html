@@ -1,0 +1,1650 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DETEKTIF DATA - Misi Menaklukkan Dunia Data</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'detective-blue': '#1E40AF',
+                        'detective-sky': '#0284C7',
+                        'detective-yellow': '#F59E0B',
+                        'detective-green': '#10B981',
+                        'detective-orange': '#F97316',
+                        'detective-purple': '#8B5CF6',
+                        'detective-dark': '#0F172A',
+                    },
+                    fontFamily: {
+                        'fredoka': ['Fredoka', 'sans-serif'],
+                        'sans': ['Plus Jakarta Sans', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            user-select: none;
+            background-color: #0F172A;
+            color: #F8FAFC;
+        }
+        h1, h2, h3, .font-heading {
+            font-family: 'Fredoka', sans-serif;
+        }
+        .bg-pattern {
+            background-color: #0f172a;
+            background-image: radial-gradient(#1e293b 2px, transparent 2px), radial-gradient(#1e293b 2px, #0f172a 2px);
+            background-size: 80px 80px;
+            background-position: 0 0, 40px 40px;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #3b82f6;
+            border-radius: 4px;
+        }
+        /* Glassmorphism */
+        .glass-card {
+            background: rgba(30, 41, 59, 0.85);
+            backdrop-filter: blur(12px);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        .bounce-slow {
+            animation: bounce 2s infinite;
+        }
+        .pulse-slow {
+            animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(-5%); animation-timing-function: cubic-bezier(0.8,0,1,1); }
+            50% { transform: translateY(0); animation-timing-function: cubic-bezier(0,0,0.2,1); }
+        }
+        /* Confetti canvas overlay */
+        #confetti-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body class="bg-pattern min-h-screen flex flex-col items-center justify-center p-2 sm:p-4 overflow-x-hidden">
+
+    <canvas id="confetti-canvas"></canvas>
+
+    <!-- Main Container Card -->
+    <div id="app-container" class="w-full max-w-4xl min-h-[650px] bg-slate-900 rounded-3xl shadow-2xl border-4 border-slate-700/60 overflow-hidden relative flex flex-col">
+
+        <!-- Top Status Bar (Shown in-game) -->
+        <header id="main-header" class="hidden bg-slate-800/90 border-b border-slate-700 p-3 sm:p-4 flex flex-wrap justify-between items-center gap-2 z-20">
+            <div class="flex items-center space-x-3">
+                <div id="hud-avatar" class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-blue-600 border-2 border-yellow-400 flex items-center justify-center text-xl sm:text-2xl shadow">
+                    🕵️
+                </div>
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <span id="hud-name" class="font-bold text-white text-sm sm:text-base font-heading">Detektif</span>
+                        <span id="hud-level-badge" class="bg-yellow-500 text-slate-900 text-xs font-bold px-2 py-0.5 rounded-full">Lvl 1</span>
+                    </div>
+                    <div class="text-xs text-slate-400 flex items-center space-x-2">
+                        <span>XP: <strong id="hud-xp" class="text-yellow-400">0</strong></span>
+                        <span>•</span>
+                        <span id="hud-title" class="text-sky-400 font-semibold">Detektif Pemula</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-2 sm:space-x-3">
+                <button onclick="toggleAudio()" id="btn-sound" class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-700 hover:bg-slate-600 text-yellow-400 flex items-center justify-center transition shadow" title="Suara">
+                    <i class="fas fa-volume-up text-lg"></i>
+                </button>
+                <button onclick="openPauseModal()" id="btn-pause" class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 flex items-center justify-center transition shadow" title="Jeda">
+                    <i class="fas fa-pause text-lg"></i>
+                </button>
+                <button onclick="showScreen('map')" class="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-bold flex items-center space-x-1 transition shadow">
+                    <i class="fas fa-map-marked-alt"></i>
+                    <span class="hidden sm:inline">Peta</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Dynamic Content Body -->
+        <main id="content-area" class="flex-1 relative overflow-y-auto p-4 sm:p-6 flex flex-col justify-center items-center">
+
+            <!-- PAGE 1: LOADING SCREEN -->
+            <section id="screen-loading" class="w-full h-full flex flex-col justify-center items-center text-center py-8">
+                <div class="relative mb-6">
+                    <div class="w-28 h-28 sm:w-36 sm:h-36 rounded-full bg-blue-500/20 flex items-center justify-center border-4 border-yellow-400 animate-pulse">
+                        <span class="text-6xl sm:text-7xl">🔎</span>
+                    </div>
+                    <div class="absolute -bottom-2 -right-2 bg-yellow-400 text-slate-900 rounded-full p-2 text-xl font-bold">
+                        📊
+                    </div>
+                </div>
+                
+                <h1 class="text-3xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-sky-300 to-green-400 mb-2">
+                    DETEKTIF DATA
+                </h1>
+                <p class="text-sky-300 font-semibold text-base sm:text-xl mb-8">
+                    “Misi Menaklukkan Dunia Data”
+                </p>
+
+                <!-- Animated Bar Graph Loader -->
+                <div class="flex items-end justify-center space-x-3 h-20 mb-6 bg-slate-800/80 px-6 py-3 rounded-2xl border border-slate-700">
+                    <div class="w-5 bg-sky-400 rounded-t-md animate-[bounce_1s_infinite_100ms]" style="height: 40%;"></div>
+                    <div class="w-5 bg-yellow-400 rounded-t-md animate-[bounce_1s_infinite_200ms]" style="height: 85%;"></div>
+                    <div class="w-5 bg-green-400 rounded-t-md animate-[bounce_1s_infinite_300ms]" style="height: 60%;"></div>
+                    <div class="w-5 bg-orange-400 rounded-t-md animate-[bounce_1s_infinite_400ms]" style="height: 100%;"></div>
+                    <div class="w-5 bg-purple-400 rounded-t-md animate-[bounce_1s_infinite_500ms]" style="height: 70%;"></div>
+                </div>
+
+                <p id="loading-text" class="text-slate-300 font-medium text-sm sm:text-base animate-pulse mb-6">
+                    Menyiapkan Misi Data...
+                </p>
+
+                <button id="btn-start-loading" onclick="finishLoading()" class="hidden px-8 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-slate-900 font-extrabold text-lg rounded-2xl shadow-lg hover:scale-105 transition transform active:scale-95">
+                    🚀 MULAI SEKARANG
+                </button>
+            </section>
+
+            <!-- PAGE 2: BERANDA (HOME) -->
+            <section id="screen-home" class="hidden w-full max-w-3xl flex flex-col items-center py-4 text-center">
+                <div class="w-full glass-card p-6 rounded-3xl mb-6 shadow-xl relative overflow-hidden">
+                    <div class="absolute -right-6 -bottom-6 opacity-10 text-9xl">🔎</div>
+                    
+                    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
+                        <div class="flex items-center space-x-4">
+                            <div id="home-avatar" class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 border-4 border-yellow-400 flex items-center justify-center text-4xl shadow-lg">
+                                🕵️
+                            </div>
+                            <div class="text-left">
+                                <div class="text-xs text-yellow-400 font-bold tracking-widest uppercase">Papan Investigasi</div>
+                                <h2 id="home-name" class="text-2xl sm:text-3xl font-extrabold text-white">Detektif Cilik</h2>
+                                <p id="home-title" class="text-sky-400 font-medium text-sm">Detektif Pemula (XP: <span id="home-xp">0</span>)</p>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-slate-800/80 px-4 py-2 rounded-xl border border-slate-700 text-center sm:text-right w-full sm:w-auto">
+                            <span class="text-xs text-slate-400 block">Kemajuan Misi</span>
+                            <div class="flex items-center space-x-2">
+                                <div class="w-32 sm:w-40 bg-slate-700 h-3 rounded-full overflow-hidden">
+                                    <div id="home-progress-bar" class="bg-gradient-to-r from-green-400 to-emerald-500 h-full w-0 transition-all duration-500"></div>
+                                </div>
+                                <span id="home-progress-text" class="text-xs font-bold text-green-400">0/5</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mystery Map banner -->
+                    <div class="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/80 my-2 flex items-center justify-between">
+                        <div class="text-left">
+                            <h3 class="font-bold text-yellow-300 text-sm sm:text-base"><i class="fas fa-bullseye text-yellow-400 mr-2"></i>Misi Utama Hari Ini</h3>
+                            <p class="text-xs text-slate-300">Pecahkan 5 kasus matematika untuk membongkar brankas data!</p>
+                        </div>
+                        <span class="text-3xl">🗺️</span>
+                    </div>
+                </div>
+
+                <!-- Navigation Buttons Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 w-full">
+                    <button onclick="checkRegistrationAndPlay()" class="sm:col-span-2 py-4 px-6 bg-gradient-to-r from-green-500 via-emerald-500 to-teal-600 hover:from-green-400 hover:to-teal-500 text-white font-extrabold text-xl rounded-2xl shadow-xl hover:scale-[1.02] active:scale-95 transition flex items-center justify-center space-x-3">
+                        <span class="text-2xl">🎮</span>
+                        <span>MULAI GIM / PETUALANGAN</span>
+                    </button>
+                    
+                    <button onclick="showScreen('objectives')" class="py-3 px-4 bg-slate-800 hover:bg-slate-750 border-2 border-slate-700 hover:border-sky-500 text-sky-300 font-bold rounded-2xl transition flex items-center justify-center space-x-2">
+                        <span>🎯</span>
+                        <span>TUJUAN PEMBELAJARAN</span>
+                    </button>
+
+                    <button onclick="showLeaderboard()" class="py-3 px-4 bg-slate-800 hover:bg-slate-750 border-2 border-slate-700 hover:border-yellow-500 text-yellow-400 font-bold rounded-2xl transition flex items-center justify-center space-x-2">
+                        <span>🏆</span>
+                        <span>PAPAN SKOR</span>
+                    </button>
+
+                    <button onclick="showProfile()" class="py-3 px-4 bg-slate-800 hover:bg-slate-750 border-2 border-slate-700 hover:border-purple-500 text-purple-300 font-bold rounded-2xl transition flex items-center justify-center space-x-2">
+                        <span>👤</span>
+                        <span>PROFIL DETEKTIF</span>
+                    </button>
+
+                    <button onclick="openSettingsModal()" class="py-3 px-4 bg-slate-800 hover:bg-slate-750 border-2 border-slate-700 hover:border-orange-500 text-orange-300 font-bold rounded-2xl transition flex items-center justify-center space-x-2">
+                        <span>⚙️</span>
+                        <span>PENGATURAN</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- PAGE 3: REGISTRASI -->
+            <section id="screen-register" class="hidden w-full max-w-lg glass-card p-6 sm:p-8 rounded-3xl shadow-2xl">
+                <div class="text-center mb-6">
+                    <span class="text-4xl">🔎</span>
+                    <h2 class="text-2xl sm:text-3xl font-extrabold text-yellow-400 mt-2">DAFTAR DETEKTIF BARU</h2>
+                    <p class="text-xs sm:text-sm text-slate-300">Isi identitas diri untuk memulai penyelidikan data!</p>
+                </div>
+
+                <form id="reg-form" onsubmit="handleRegistration(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-300 mb-1 uppercase tracking-wide">Nama Lengkap</label>
+                        <input type="text" id="reg-fullname" required placeholder="Contoh: Budi Santoso" class="w-full px-4 py-2.5 rounded-xl bg-slate-800 border-2 border-slate-700 text-white focus:outline-none focus:border-sky-500 text-sm">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-300 mb-1 uppercase tracking-wide">Nama Panggilan</label>
+                            <input type="text" id="reg-nickname" required placeholder="Contoh: Budi" class="w-full px-4 py-2.5 rounded-xl bg-slate-800 border-2 border-slate-700 text-white focus:outline-none focus:border-sky-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-300 mb-1 uppercase tracking-wide">Kelas</label>
+                            <select id="reg-class" class="w-full px-4 py-2.5 rounded-xl bg-slate-800 border-2 border-slate-700 text-white focus:outline-none focus:border-sky-500 text-sm">
+                                <option value="6A">Kelas 6A</option>
+                                <option value="6B">Kelas 6B</option>
+                                <option value="6C">Kelas 6C</option>
+                                <option value="6D">Kelas 6D</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-300 mb-1 uppercase tracking-wide">Nomor Absen</label>
+                        <input type="number" id="reg-absent" required min="1" max="50" placeholder="15" class="w-full px-4 py-2.5 rounded-xl bg-slate-800 border-2 border-slate-700 text-white focus:outline-none focus:border-sky-500 text-sm">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-300 mb-2 uppercase tracking-wide">Pilih Avatar Detektif</label>
+                        <div class="grid grid-cols-4 gap-2">
+                            <label class="cursor-pointer">
+                                <input type="radio" name="avatar" value="🕵️" checked class="peer hidden">
+                                <div class="p-3 rounded-2xl bg-slate-800 border-2 border-slate-700 peer-checked:border-yellow-400 peer-checked:bg-yellow-500/20 text-center hover:bg-slate-700 transition">
+                                    <div class="text-3xl mb-1">🕵️</div>
+                                    <span class="text-[10px] font-bold block text-slate-300">Detektif</span>
+                                </div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="avatar" value="👩‍🔬" class="peer hidden">
+                                <div class="p-3 rounded-2xl bg-slate-800 border-2 border-slate-700 peer-checked:border-yellow-400 peer-checked:bg-yellow-500/20 text-center hover:bg-slate-700 transition">
+                                    <div class="text-3xl mb-1">👩‍🔬</div>
+                                    <span class="text-[10px] font-bold block text-slate-300">Ilmuwan</span>
+                                </div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="avatar" value="👨‍🚀" class="peer hidden">
+                                <div class="p-3 rounded-2xl bg-slate-800 border-2 border-slate-700 peer-checked:border-yellow-400 peer-checked:bg-yellow-500/20 text-center hover:bg-slate-700 transition">
+                                    <div class="text-3xl mb-1">👨‍🚀</div>
+                                    <span class="text-[10px] font-bold block text-slate-300">Astronaut</span>
+                                </div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="avatar" value="🧑‍💻" class="peer hidden">
+                                <div class="p-3 rounded-2xl bg-slate-800 border-2 border-slate-700 peer-checked:border-yellow-400 peer-checked:bg-yellow-500/20 text-center hover:bg-slate-700 transition">
+                                    <div class="text-3xl mb-1">🧑‍💻</div>
+                                    <span class="text-[10px] font-bold block text-slate-300">Ahli Data</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full py-3.5 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-slate-900 font-extrabold text-base rounded-2xl shadow-lg hover:scale-[1.01] active:scale-95 transition mt-4">
+                        🚀 DAFTAR & MULAI PETUALANGAN
+                    </button>
+                </form>
+            </section>
+
+            <!-- PAGE 4: TUJUAN PEMBELAJARAN -->
+            <section id="screen-objectives" class="hidden w-full max-w-3xl flex flex-col items-center">
+                <div class="text-center mb-6">
+                    <h2 class="text-3xl sm:text-4xl font-extrabold text-yellow-400 flex items-center justify-center space-x-2">
+                        <span>🎯</span>
+                        <span>TUJUAN PEMBELAJARAN</span>
+                    </h2>
+                    <p class="text-slate-300 text-sm sm:text-base mt-1">Kompetensi Penyajian Data Matematika Kelas 6 SD</p>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 w-full mb-6">
+                    <div class="glass-card p-4 rounded-2xl border-l-4 border-blue-500 flex items-start space-x-3">
+                        <span class="text-2xl p-2 bg-blue-500/20 rounded-xl">📋</span>
+                        <div>
+                            <h4 class="font-bold text-white text-sm">Mengidentifikasi Data</h4>
+                            <p class="text-xs text-slate-300">Mengenali bentuk penyajian data tabel, diagram batang, garis, dan lingkaran.</p>
+                        </div>
+                    </div>
+                    <div class="glass-card p-4 rounded-2xl border-l-4 border-green-500 flex items-start space-x-3">
+                        <span class="text-2xl p-2 bg-green-500/20 rounded-xl">📊</span>
+                        <div>
+                            <h4 class="font-bold text-white text-sm">Membaca Tabel & Diagram</h4>
+                            <p class="text-xs text-slate-300">Membaca dan menafsirkan informasi angka dari tabel dan diagram batang.</p>
+                        </div>
+                    </div>
+                    <div class="glass-card p-4 rounded-2xl border-l-4 border-yellow-500 flex items-start space-x-3">
+                        <span class="text-2xl p-2 bg-yellow-500/20 rounded-xl">📈</span>
+                        <div>
+                            <h4 class="font-bold text-white text-sm">Analisis Diagram Garis</h4>
+                            <p class="text-xs text-slate-300">Memahami tren perkembangan data berdasarkan diagram garis secara detail.</p>
+                        </div>
+                    </div>
+                    <div class="glass-card p-4 rounded-2xl border-l-4 border-purple-500 flex items-start space-x-3">
+                        <span class="text-2xl p-2 bg-purple-500/20 rounded-xl">🥧</span>
+                        <div>
+                            <h4 class="font-bold text-white text-sm">Diagram Lingkaran</h4>
+                            <p class="text-xs text-slate-300">Membaca persentase & menghitung jumlah nyata pada diagram lingkaran.</p>
+                        </div>
+                    </div>
+                    <div class="glass-card p-4 rounded-2xl border-l-4 border-orange-500 flex items-start space-x-3">
+                        <span class="text-2xl p-2 bg-orange-500/20 rounded-xl">🧮</span>
+                        <div>
+                            <h4 class="font-bold text-white text-sm">Jumlah & Selisih Data</h4>
+                            <p class="text-xs text-slate-300">Menghitung total, membandingkan data, dan mencari selisih angka data.</p>
+                        </div>
+                    </div>
+                    <div class="glass-card p-4 rounded-2xl border-l-4 border-sky-500 flex items-start space-x-3">
+                        <span class="text-2xl p-2 bg-sky-500/20 rounded-xl">🧩</span>
+                        <div>
+                            <h4 class="font-bold text-white text-sm">Pemecahan Masalah</h4>
+                            <p class="text-xs text-slate-300">Menyelesaikan masalah kontekstual sehari-hari menggunakan analisis data.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex space-x-4">
+                    <button onclick="showScreen('home')" class="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-2xl transition">
+                        🏠 Beranda
+                    </button>
+                    <button onclick="showScreen('map')" class="px-8 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-slate-900 font-extrabold rounded-2xl shadow-lg transition">
+                        🗺️ LIHAT PETA MISI
+                    </button>
+                </div>
+            </section>
+
+            <!-- PAGE 5: PETA MISI (MISSION MAP) -->
+            <section id="screen-map" class="hidden w-full max-w-3xl flex flex-col items-center">
+                <div class="text-center mb-6">
+                    <h2 class="text-3xl font-extrabold text-yellow-400">🗺️ PETA MISI DETEKTIF</h2>
+                    <p class="text-slate-300 text-sm">Selesaikan kasus secara berurutan untuk membuka brankas rahasia!</p>
+                </div>
+
+                <div class="w-full space-y-4 mb-6">
+                    <!-- Level 1 -->
+                    <div id="map-card-1" onclick="startMission(1)" class="glass-card p-4 sm:p-5 rounded-2xl flex items-center justify-between border-2 border-sky-400 hover:border-yellow-400 cursor-pointer transition transform hover:-translate-y-1">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-12 h-12 rounded-2xl bg-sky-500/20 border-2 border-sky-400 flex items-center justify-center text-2xl font-bold text-sky-400">
+                                🔎
+                            </div>
+                            <div>
+                                <span class="text-xs font-bold text-sky-400 uppercase tracking-wider">Misi 1</span>
+                                <h3 class="text-base sm:text-lg font-bold text-white">Kasus Tabel Misterius</h3>
+                                <p class="text-xs text-slate-300">Investigasi Pengunjung Perpustakaan Sekolah</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs bg-sky-500/20 text-sky-300 px-3 py-1 rounded-full font-bold">100 XP / Soal</span>
+                            <div id="map-status-1" class="text-xs text-green-400 font-bold mt-1">Terbuka</div>
+                        </div>
+                    </div>
+
+                    <!-- Level 2 -->
+                    <div id="map-card-2" onclick="startMission(2)" class="glass-card p-4 sm:p-5 rounded-2xl flex items-center justify-between border-2 border-slate-700 opacity-60 cursor-not-allowed transition">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-12 h-12 rounded-2xl bg-slate-800 border-2 border-slate-700 flex items-center justify-center text-2xl font-bold text-slate-500">
+                                📊
+                            </div>
+                            <div>
+                                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Misi 2</span>
+                                <h3 class="text-base sm:text-lg font-bold text-white">Rahasia Diagram Batang</h3>
+                                <p class="text-xs text-slate-400">Analisis Olahraga Favorit Siswa</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs bg-slate-800 text-slate-400 px-3 py-1 rounded-full font-bold">Timer 60s</span>
+                            <div id="map-status-2" class="text-xs text-yellow-500 font-bold mt-1">🔒 Terkunci</div>
+                        </div>
+                    </div>
+
+                    <!-- Level 3 -->
+                    <div id="map-card-3" onclick="startMission(3)" class="glass-card p-4 sm:p-5 rounded-2xl flex items-center justify-between border-2 border-slate-700 opacity-60 cursor-not-allowed transition">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-12 h-12 rounded-2xl bg-slate-800 border-2 border-slate-700 flex items-center justify-center text-2xl font-bold text-slate-500">
+                                📈
+                            </div>
+                            <div>
+                                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Misi 3</span>
+                                <h3 class="text-base sm:text-lg font-bold text-white">Jejak Diagram Garis</h3>
+                                <p class="text-xs text-slate-400">Peminjaman Buku Selama 5 Hari</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs bg-slate-800 text-slate-400 px-3 py-1 rounded-full font-bold">Fitur Hint</span>
+                            <div id="map-status-3" class="text-xs text-yellow-500 font-bold mt-1">🔒 Terkunci</div>
+                        </div>
+                    </div>
+
+                    <!-- Level 4 -->
+                    <div id="map-card-4" onclick="startMission(4)" class="glass-card p-4 sm:p-5 rounded-2xl flex items-center justify-between border-2 border-slate-700 opacity-60 cursor-not-allowed transition">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-12 h-12 rounded-2xl bg-slate-800 border-2 border-slate-700 flex items-center justify-center text-2xl font-bold text-slate-500">
+                                🥧
+                            </div>
+                            <div>
+                                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Misi 4</span>
+                                <h3 class="text-base sm:text-lg font-bold text-white">Kode Diagram Lingkaran</h3>
+                                <p class="text-xs text-slate-400">Pembagian Persentase Hobi Siswa</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs bg-slate-800 text-slate-400 px-3 py-1 rounded-full font-bold">+200 Bonus XP</span>
+                            <div id="map-status-4" class="text-xs text-yellow-500 font-bold mt-1">🔒 Terkunci</div>
+                        </div>
+                    </div>
+
+                    <!-- Level 5 -->
+                    <div id="map-card-5" onclick="startMission(5)" class="glass-card p-4 sm:p-5 rounded-2xl flex items-center justify-between border-2 border-yellow-500/50 opacity-60 cursor-not-allowed transition">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-12 h-12 rounded-2xl bg-yellow-500/10 border-2 border-yellow-500/40 flex items-center justify-center text-2xl font-bold text-yellow-400">
+                                🔐
+                            </div>
+                            <div>
+                                <span class="text-xs font-bold text-yellow-400 uppercase tracking-wider">Misi 5 (FINAL)</span>
+                                <h3 class="text-base sm:text-lg font-bold text-yellow-300">Misteri Data Terakhir</h3>
+                                <p class="text-xs text-slate-400">Pecahkan 4 Kode Digit Brankas Rahasia!</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs bg-yellow-500/20 text-yellow-300 px-3 py-1 rounded-full font-bold">Boss Level</span>
+                            <div id="map-status-5" class="text-xs text-yellow-500 font-bold mt-1">🔒 Terkunci</div>
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="showScreen('home')" class="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition text-sm">
+                    ⬅️ Kembali ke Beranda
+                </button>
+            </section>
+
+            <!-- MISSION GAMEPLAY SCREEN -->
+            <section id="screen-gameplay" class="hidden w-full max-w-3xl flex flex-col">
+                <!-- Mission Title & Progress bar -->
+                <div class="glass-card p-4 rounded-2xl mb-4 flex justify-between items-center">
+                    <div>
+                        <span id="game-mission-tag" class="text-xs font-extrabold text-sky-400 uppercase tracking-wider">MISI 1</span>
+                        <h3 id="game-mission-title" class="text-lg font-bold text-white">Kasus Tabel Misterius</h3>
+                    </div>
+                    
+                    <div class="flex items-center space-x-3">
+                        <div id="timer-box" class="hidden bg-slate-800 border border-orange-500/50 px-3 py-1 rounded-xl text-orange-400 font-bold text-sm flex items-center space-x-1">
+                            <i class="fas fa-clock"></i>
+                            <span id="timer-count">60</span>s
+                        </div>
+                        <button id="btn-hint" onclick="useHint()" class="hidden bg-yellow-500 hover:bg-yellow-400 text-slate-900 px-3 py-1 rounded-xl font-extrabold text-xs shadow">
+                            💡 PETUNJUK (1x)
+                        </button>
+                        <span id="game-step-counter" class="bg-slate-800 px-3 py-1 rounded-xl text-xs font-bold text-yellow-400 border border-slate-700">
+                            Soal 1 / 2
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Theme Banner / Graphic Area -->
+                <div class="glass-card p-4 sm:p-6 rounded-3xl mb-4 flex flex-col items-center">
+                    <!-- Environment Theme Label -->
+                    <div id="game-theme-badge" class="mb-3 text-xs bg-slate-800/90 border border-slate-700 text-slate-300 px-3 py-1 rounded-full flex items-center space-x-2">
+                        <span>🏫</span>
+                        <span id="game-theme-text">Lokasi: Ruang Perpustakaan Sekolah</span>
+                    </div>
+
+                    <!-- Visual Data Display Container -->
+                    <div id="game-data-visual" class="w-full flex justify-center items-center my-2 min-h-[220px]">
+                        <!-- Dynamic content injected by JS (Tabel / SVG Bar Chart / Line Chart / Pie Chart) -->
+                    </div>
+                </div>
+
+                <!-- Question & Options Section -->
+                <div class="glass-card p-4 sm:p-6 rounded-3xl flex flex-col space-y-4">
+                    <div class="flex items-start space-x-3">
+                        <div class="w-8 h-8 rounded-full bg-yellow-500/20 text-yellow-400 font-bold flex items-center justify-center shrink-0 mt-0.5">
+                            ❓
+                        </div>
+                        <p id="game-question-text" class="text-base sm:text-lg font-bold text-white leading-relaxed">
+                            Loading pertanyaan...
+                        </p>
+                    </div>
+
+                    <!-- Multiple Choice Options -->
+                    <div id="game-options-container" class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                        <!-- Rendered by JS -->
+                    </div>
+
+                    <!-- Feedback Box -->
+                    <div id="game-feedback" class="hidden p-4 rounded-2xl text-center font-bold text-sm flex flex-col items-center justify-center space-y-2">
+                        <!-- Injected by JS -->
+                    </div>
+
+                    <!-- Next / Action Button -->
+                    <div class="flex justify-end pt-2">
+                        <button id="btn-game-next" onclick="nextQuestion()" class="hidden px-6 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white font-extrabold rounded-xl shadow-lg transition">
+                            Lanjut ➡️
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PAGE: MISSION 5 BOSS SAFE VAULT -->
+            <section id="screen-boss-vault" class="hidden w-full max-w-xl glass-card p-6 sm:p-8 rounded-3xl text-center flex flex-col items-center">
+                <div class="w-24 h-24 rounded-full bg-yellow-500/20 border-4 border-yellow-400 flex items-center justify-center text-5xl mb-4 animate-bounce">
+                    🔐
+                </div>
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-yellow-400">BRANKAS DATA RAHASIA</h2>
+                <p class="text-xs sm:text-sm text-slate-300 mb-6">Masukkan 4 Digit Kode Rahasia dari Hasil Penyelesaian Misi!</p>
+
+                <!-- 4 Digit Code Indicators -->
+                <div class="flex justify-center space-x-3 sm:space-x-4 mb-6">
+                    <input type="text" maxlength="1" id="code-1" class="w-12 h-16 sm:w-14 sm:h-20 bg-slate-800 border-2 border-yellow-400 text-center text-2xl sm:text-3xl font-extrabold text-yellow-300 rounded-2xl focus:outline-none" readonly>
+                    <input type="text" maxlength="1" id="code-2" class="w-12 h-16 sm:w-14 sm:h-20 bg-slate-800 border-2 border-yellow-400 text-center text-2xl sm:text-3xl font-extrabold text-yellow-300 rounded-2xl focus:outline-none" readonly>
+                    <input type="text" maxlength="1" id="code-3" class="w-12 h-16 sm:w-14 sm:h-20 bg-slate-800 border-2 border-yellow-400 text-center text-2xl sm:text-3xl font-extrabold text-yellow-300 rounded-2xl focus:outline-none" readonly>
+                    <input type="text" maxlength="1" id="code-4" class="w-12 h-16 sm:w-14 sm:h-20 bg-slate-800 border-2 border-yellow-400 text-center text-2xl sm:text-3xl font-extrabold text-yellow-300 rounded-2xl focus:outline-none" readonly>
+                </div>
+
+                <p class="text-xs text-slate-400 mb-6">Digit kode didapatkan otomatis setiap kali tantangan berhasil dipecahkan.</p>
+
+                <button onclick="unlockVault()" class="w-full py-4 bg-gradient-to-r from-yellow-500 via-orange-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 text-slate-900 font-extrabold text-lg rounded-2xl shadow-xl hover:scale-105 transition">
+                    🔓 BUKA BRANKAS RAHASIA
+                </button>
+            </section>
+
+            <!-- PAGE 6: RESULT SCREEN -->
+            <section id="screen-result" class="hidden w-full max-w-2xl glass-card p-6 sm:p-8 rounded-3xl text-center flex flex-col items-center">
+                <div class="text-6xl mb-2 animate-bounce">🏆</div>
+                <h2 class="text-3xl font-extrabold text-yellow-400">HASIL PERMAINAN</h2>
+                <p class="text-sm text-slate-300 mb-6">Misi Menaklukkan Dunia Data Selesai!</p>
+
+                <!-- Result Card -->
+                <div class="w-full bg-slate-800/90 rounded-2xl p-6 border border-slate-700 mb-6 space-y-4">
+                    <div class="flex items-center justify-center space-x-4 pb-4 border-b border-slate-700">
+                        <div id="res-avatar" class="w-16 h-16 rounded-2xl bg-blue-600 border-2 border-yellow-400 flex items-center justify-center text-3xl">
+                            🕵️
+                        </div>
+                        <div class="text-left">
+                            <h3 id="res-name" class="text-xl font-bold text-white">Detektif Budi</h3>
+                            <div id="res-badge-title" class="inline-block bg-yellow-500 text-slate-900 font-extrabold text-xs px-3 py-1 rounded-full mt-1">
+                                🏆 MASTER DETEKTIF DATA
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700">
+                            <span class="text-xs text-slate-400 block">Total Skor</span>
+                            <span id="res-score" class="text-xl font-extrabold text-yellow-400">1,850</span>
+                        </div>
+                        <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700">
+                            <span class="text-xs text-slate-400 block">Soal Benar</span>
+                            <span id="res-correct" class="text-xl font-extrabold text-green-400">11 / 11</span>
+                        </div>
+                        <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700">
+                            <span class="text-xs text-slate-400 block">Akurasi</span>
+                            <span id="res-accuracy" class="text-xl font-extrabold text-sky-400">100%</span>
+                        </div>
+                        <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700">
+                            <span class="text-xs text-slate-400 block">Waktu Main</span>
+                            <span id="res-time" class="text-xl font-extrabold text-purple-400">03:45</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+                    <button onclick="showDiscussionModal()" class="py-3 px-4 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-2xl transition">
+                        📖 LIHAT PEMBAHASAN
+                    </button>
+                    <button onclick="showLeaderboard()" class="py-3 px-4 bg-yellow-500 hover:bg-yellow-400 text-slate-900 font-bold rounded-2xl transition">
+                        🏆 LIHAT PAPAN SKOR
+                    </button>
+                    <button onclick="restartGame()" class="py-3 px-4 bg-green-600 hover:bg-green-500 text-white font-bold rounded-2xl transition">
+                        🔄 MAIN LAGI
+                    </button>
+                    <button onclick="showScreen('home')" class="py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-2xl transition">
+                        🏠 KEMBALI KE BERANDA
+                    </button>
+                </div>
+            </section>
+
+            <!-- PAGE 7: LEADERBOARD -->
+            <section id="screen-leaderboard" class="hidden w-full max-w-2xl flex flex-col items-center">
+                <div class="text-center mb-4">
+                    <h2 class="text-3xl font-extrabold text-yellow-400">🏆 PAPAN SKOR DETEKTIF DATA</h2>
+                    <p class="text-xs text-slate-300">Peringkat Detektif Hebat Seluruh Indonesia</p>
+                </div>
+
+                <!-- Time Filter Tabs -->
+                <div class="flex space-x-2 mb-4 bg-slate-800 p-1.5 rounded-xl border border-slate-700">
+                    <button onclick="filterLeaderboard('today')" id="tab-today" class="px-4 py-1.5 rounded-lg text-xs font-bold bg-yellow-500 text-slate-900 transition">Hari Ini</button>
+                    <button onclick="filterLeaderboard('week')" id="tab-week" class="px-4 py-1.5 rounded-lg text-xs font-bold text-slate-300 hover:text-white transition">Minggu Ini</button>
+                    <button onclick="filterLeaderboard('all')" id="tab-all" class="px-4 py-1.5 rounded-lg text-xs font-bold text-slate-300 hover:text-white transition">Semua</button>
+                </div>
+
+                <!-- Leaderboard Table Container -->
+                <div class="w-full glass-card rounded-2xl p-4 overflow-hidden mb-6">
+                    <div class="space-y-2" id="leaderboard-list">
+                        <!-- Dynamic items rendered by JS -->
+                    </div>
+                </div>
+
+                <button onclick="showScreen('home')" class="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl transition text-sm">
+                    ⬅️ Kembali ke Beranda
+                </button>
+            </section>
+
+            <!-- PROFILE MODAL / SCREEN -->
+            <section id="screen-profile" class="hidden w-full max-w-md glass-card p-6 rounded-3xl text-center">
+                <div class="w-20 h-20 rounded-2xl bg-blue-600 border-4 border-yellow-400 mx-auto flex items-center justify-center text-4xl mb-3 shadow-lg" id="prof-avatar">
+                    🕵️
+                </div>
+                <h3 id="prof-name" class="text-2xl font-bold text-white">Detektif Budi</h3>
+                <p id="prof-class" class="text-xs text-sky-400 font-semibold mb-4">Kelas 6A • No. Absen 15</p>
+
+                <div class="bg-slate-800 p-4 rounded-2xl text-left space-y-3 mb-6 border border-slate-700">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-slate-400">Total Skor XP:</span>
+                        <strong id="prof-xp" class="text-yellow-400 font-bold">1,850</strong>
+                    </div>
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-slate-400">Gelar Detektif:</span>
+                        <strong id="prof-title" class="text-green-400 font-bold">Master Data</strong>
+                    </div>
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-slate-400">Misi Terselesaikan:</span>
+                        <strong id="prof-missions" class="text-sky-400 font-bold">5 / 5 Misi</strong>
+                    </div>
+                </div>
+
+                <div class="flex space-x-3">
+                    <button onclick="showScreen('register')" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl transition text-xs">
+                        ✏️ Edit Profil
+                    </button>
+                    <button onclick="showScreen('home')" class="flex-1 py-2.5 bg-yellow-500 hover:bg-yellow-400 text-slate-900 font-bold rounded-xl transition text-xs">
+                        🏠 Beranda
+                    </button>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- MODAL PEMBAHASAN (DISCUSSION MODAL) -->
+    <div id="modal-discussion" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="glass-card w-full max-w-2xl max-h-[85vh] rounded-3xl p-6 flex flex-col">
+            <div class="flex justify-between items-center pb-3 border-b border-slate-700">
+                <h3 class="text-xl font-bold text-yellow-400">📖 PEMBAHASAN MISI DATA</h3>
+                <button onclick="closeModal('modal-discussion')" class="text-slate-400 hover:text-white text-xl">✖</button>
+            </div>
+            
+            <div id="discussion-content" class="flex-1 overflow-y-auto py-4 space-y-4 text-left">
+                <!-- Injected dynamically -->
+            </div>
+
+            <button onclick="closeModal('modal-discussion')" class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl mt-2">
+                Tutup Pembahasan
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL PENGATURAN (SETTINGS) -->
+    <div id="modal-settings" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="glass-card w-full max-w-sm rounded-3xl p-6 text-center">
+            <h3 class="text-xl font-bold text-yellow-400 mb-4">⚙️ PENGATURAN GAME</h3>
+            
+            <div class="space-y-4 mb-6 text-left">
+                <div class="flex justify-between items-center bg-slate-800 p-3 rounded-xl">
+                    <span class="text-sm font-bold text-slate-200">Efek Suara (SFX)</span>
+                    <button onclick="toggleAudio()" id="setting-sound-btn" class="px-3 py-1 bg-green-500 text-slate-900 text-xs font-bold rounded-lg">
+                        AKTIF
+                    </button>
+                </div>
+
+                <div class="flex justify-between items-center bg-slate-800 p-3 rounded-xl">
+                    <span class="text-sm font-bold text-slate-200">Reset Kemajuan Game</span>
+                    <button onclick="resetGameData()" class="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-xs font-bold rounded-lg">
+                        RESET
+                    </button>
+                </div>
+            </div>
+
+            <button onclick="closeModal('modal-settings')" class="w-full py-2.5 bg-yellow-500 hover:bg-yellow-400 text-slate-900 font-extrabold rounded-xl">
+                Simpan & Kembali
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL PAUSE -->
+    <div id="modal-pause" class="hidden fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="glass-card w-full max-w-sm rounded-3xl p-6 text-center">
+            <span class="text-5xl mb-2 block">⏸️</span>
+            <h3 class="text-2xl font-bold text-yellow-400 mb-2">PERMAINAN DIJEDA</h3>
+            <p class="text-xs text-slate-300 mb-6">Detektif sedang beristirahat sebentar.</p>
+
+            <div class="space-y-3">
+                <button onclick="closeModal('modal-pause')" class="w-full py-3 bg-green-500 hover:bg-green-400 text-slate-900 font-extrabold rounded-xl">
+                    ▶️ Lanjutkan Game
+                </button>
+                <button onclick="closeModal('modal-pause'); showScreen('map');" class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl">
+                    🗺️ Ke Peta Misi
+                </button>
+                <button onclick="closeModal('modal-pause'); showScreen('home');" class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl">
+                    🏠 Ke Beranda
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT GAME LOGIC -->
+    <script>
+        // Audio Synthesizer using Web Audio API (No external sound files required)
+        let audioCtx = null;
+        let soundEnabled = true;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+            initAudio();
+            if (!audioCtx) return;
+
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            if (type === 'click') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(800, now + 0.05);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.linearRampToValueAtTime(0, now + 0.05);
+                osc.start(now);
+                osc.stop(now + 0.05);
+            } else if (type === 'correct') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(523.25, now); // C5
+                osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
+                osc.frequency.setValueAtTime(783.99, now + 0.2); // G5
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.linearRampToValueAtTime(0, now + 0.35);
+                osc.start(now);
+                osc.stop(now + 0.35);
+            } else if (type === 'wrong') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(250, now);
+                osc.frequency.setValueAtTime(180, now + 0.15);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.linearRampToValueAtTime(0, now + 0.3);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            } else if (type === 'fanfare') {
+                const freqs = [523.25, 659.25, 783.99, 1046.50];
+                freqs.forEach((f, idx) => {
+                    const o = audioCtx.createOscillator();
+                    const g = audioCtx.createGain();
+                    o.connect(g);
+                    g.connect(audioCtx.destination);
+                    o.frequency.setValueAtTime(f, now + idx * 0.1);
+                    g.gain.setValueAtTime(0.3, now + idx * 0.1);
+                    g.gain.linearRampToValueAtTime(0, now + idx * 0.1 + 0.3);
+                    o.start(now + idx * 0.1);
+                    o.stop(now + idx * 0.1 + 0.3);
+                });
+            }
+        }
+
+        function toggleAudio() {
+            soundEnabled = !soundEnabled;
+            const soundBtns = [document.getElementById('btn-sound'), document.getElementById('setting-sound-btn')];
+            soundBtns.forEach(btn => {
+                if (btn) {
+                    btn.innerHTML = soundEnabled ? 'AKTIF' : 'MATI';
+                    if (btn.id === 'btn-sound') {
+                        btn.innerHTML = `<i class="fas fa-volume-${soundEnabled ? 'up' : 'mute'} text-lg"></i>`;
+                    }
+                }
+            });
+        }
+
+        // Player Data & Progress State
+        let player = {
+            fullname: 'Budi Santoso',
+            nickname: 'Budi',
+            class: '6A',
+            absent: '15',
+            avatar: '🕵️',
+            xp: 0,
+            level: 1,
+            completedMissions: [],
+            isRegistered: false
+        };
+
+        // Game Questions Database
+        const missionsData = {
+            1: {
+                title: "Kasus Tabel Misterius",
+                themeText: "Ruang Perpustakaan Sekolah",
+                themeIcon: "📚",
+                questions: [
+                    {
+                        q: "Pada hari apa jumlah pengunjung perpustakaan paling banyak?",
+                        options: ["A. Senin", "B. Selasa", "C. Kamis", "D. Jumat"],
+                        correct: 2, // C
+                        explanation: "Berdasarkan tabel, hari Kamis memiliki pengunjung terbanyak yaitu 30 siswa."
+                    },
+                    {
+                        q: "Berapa selisih jumlah pengunjung pada hari Kamis dan Rabu?",
+                        options: ["A. 10", "B. 12", "C. 15", "D. 18"],
+                        correct: 1, // B
+                        explanation: "Pengunjung Kamis (30) - Pengunjung Rabu (18) = 12 siswa."
+                    }
+                ]
+            },
+            2: {
+                title: "Rahasia Diagram Batang",
+                themeText: "Lapangan Olahraga Sekolah",
+                themeIcon: "⚽",
+                questions: [
+                    {
+                        q: "Olahraga apa yang paling banyak dipilih siswa?",
+                        options: ["A. Sepak Bola", "B. Badminton", "C. Basket", "D. Renang"],
+                        correct: 1, // B
+                        explanation: "Diagram batang tertinggi adalah Badminton dengan total 15 siswa."
+                    },
+                    {
+                        q: "Berapa selisih siswa yang memilih badminton dan basket?",
+                        options: ["A. 5", "B. 6", "C. 7", "D. 8"],
+                        correct: 2, // C
+                        explanation: "Siswa Badminton (15) - Siswa Basket (8) = 7 siswa."
+                    }
+                ]
+            },
+            3: {
+                title: "Jejak Diagram Garis",
+                themeText: "Ruang Pusat Kendali Detektif",
+                themeIcon: "📈",
+                questions: [
+                    {
+                        q: "Pada hari apa jumlah buku yang dipinjam paling banyak?",
+                        options: ["A. Selasa", "B. Rabu", "C. Kamis", "D. Jumat"],
+                        correct: 3, // D
+                        explanation: "Titik garis tertinggi berada pada hari Jumat dengan 25 buku."
+                    },
+                    {
+                        q: "Berapa jumlah buku yang dipinjam pada hari Rabu?",
+                        options: ["A. 10", "B. 12", "C. 15", "D. 20"],
+                        correct: 1, // B
+                        explanation: "Titik diagram garis pada hari Rabu berada tepat pada angka 12."
+                    },
+                    {
+                        q: "Berapa kenaikan jumlah buku dari Kamis ke Jumat?",
+                        options: ["A. 5", "B. 10", "C. 15", "D. 20"],
+                        correct: 0, // A
+                        explanation: "Buku hari Jumat (25) - Buku hari Kamis (20) = 5 buku."
+                    }
+                ]
+            },
+            4: {
+                title: "Kode Diagram Lingkaran",
+                themeText: "Ruang Rahasia Brankas",
+                themeIcon: "🗝️",
+                questions: [
+                    {
+                        q: "Hobi apa yang memiliki bagian terbesar pada diagram?",
+                        options: ["A. Membaca", "B. Sepak Bola", "C. Menggambar", "D. Bermain Musik"],
+                        correct: 1, // B
+                        explanation: "Sepak Bola memiliki persentase terbesar yaitu 35%."
+                    },
+                    {
+                        q: "Jika jumlah seluruh siswa adalah 40 orang, berapa siswa yang memilih bermain sepak bola?",
+                        options: ["A. 10", "B. 12", "C. 14", "D. 16"],
+                        correct: 2, // C
+                        explanation: "35% × 40 orang = (35/100) × 40 = 14 orang."
+                    }
+                ]
+            },
+            5: {
+                title: "Misteri Data Terakhir",
+                themeText: "Ruang Investigasi Rahasia (Boss Level)",
+                themeIcon: "🔐",
+                questions: [
+                    {
+                        type: "table",
+                        q: "Kegiatan ekstrakurikuler apa yang paling banyak diminati?",
+                        options: ["A. Pramuka", "B. Basket", "C. PMR", "D. Seni"],
+                        correct: 0,
+                        digit: "7",
+                        explanation: "Pramuka memiliki peminat terbanyak yaitu 15 siswa."
+                    },
+                    {
+                        type: "bar",
+                        q: "Berapa selisih jumlah peminat Pramuka (15) dan PMR (8)?",
+                        options: ["A. 5", "B. 7", "C. 8", "D. 10"],
+                        correct: 1,
+                        digit: "3",
+                        explanation: "15 - 8 = 7."
+                    },
+                    {
+                        type: "line",
+                        q: "Berdasarkan tren grafik, kapan terjadi peningkatan terbesar?",
+                        options: ["A. Senin - Selasa", "B. Selasa - Rabu", "C. Rabu - Kamis", "D. Kamis - Jumat"],
+                        correct: 3,
+                        digit: "9",
+                        explanation: "Kenaikan terbesar dari Kamis (20) ke Jumat (25)."
+                    },
+                    {
+                        type: "pie",
+                        q: "Berapa jumlah siswa yang menyukai Menggambar (20%) jika total 40 siswa?",
+                        options: ["A. 6", "B. 8", "C. 10", "D. 12"],
+                        correct: 1,
+                        digit: "2",
+                        explanation: "20% × 40 = 8 siswa."
+                    }
+                ]
+            }
+        };
+
+        // Active Session Variables
+        let currentMission = 1;
+        let currentQuestionIdx = 0;
+        let sessionScore = 0;
+        let sessionCorrectCount = 0;
+        let sessionWrongCount = 0;
+        let startTime = 0;
+        let timerInterval = null;
+        let hintUsed = false;
+        let collectedDigits = ["?", "?", "?", "?"];
+
+        window.onload = function() {
+            loadSavedData();
+            setTimeout(() => {
+                const btn = document.getElementById('btn-start-loading');
+                const text = document.getElementById('loading-text');
+                if (btn && text) {
+                    text.innerText = "Misi Siap! Klik tombol di bawah untuk melanjutkan.";
+                    btn.classList.remove('hidden');
+                }
+            }, 1800);
+        };
+
+        function finishLoading() {
+            playSound('click');
+            if (!player.isRegistered) {
+                showScreen('register');
+            } else {
+                showScreen('home');
+            }
+        }
+
+        function showScreen(screenId) {
+            playSound('click');
+            const screens = ['loading', 'home', 'register', 'objectives', 'map', 'gameplay', 'boss-vault', 'result', 'leaderboard', 'profile'];
+            screens.forEach(s => {
+                const el = document.getElementById('screen-' + s);
+                if (el) el.classList.add('hidden');
+            });
+
+            const target = document.getElementById('screen-' + screenId);
+            if (target) target.classList.remove('hidden');
+
+            // Toggle HUD header visibility
+            const header = document.getElementById('main-header');
+            if (screenId === 'loading' || screenId === 'register') {
+                header.classList.add('hidden');
+            } else {
+                header.classList.remove('hidden');
+                updateHUD();
+            }
+
+            if (screenId === 'map') updateMapState();
+            if (screenId === 'home') updateHomeState();
+        }
+
+        function closeModal(modalId) {
+            playSound('click');
+            document.getElementById(modalId).classList.add('hidden');
+        }
+
+        function openPauseModal() {
+            playSound('click');
+            document.getElementById('modal-pause').classList.remove('hidden');
+        }
+
+        function openSettingsModal() {
+            playSound('click');
+            document.getElementById('modal-settings').classList.remove('hidden');
+        }
+
+        function loadSavedData() {
+            const saved = localStorage.getItem('detektif_data_user');
+            if (saved) {
+                try {
+                    player = JSON.parse(saved);
+                } catch(e){}
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('detektif_data_user', JSON.stringify(player));
+        }
+
+        function handleRegistration(e) {
+            e.preventDefault();
+            playSound('click');
+            player.fullname = document.getElementById('reg-fullname').value;
+            player.nickname = document.getElementById('reg-nickname').value;
+            player.class = document.getElementById('reg-class').value;
+            player.absent = document.getElementById('reg-absent').value;
+            
+            const avatars = document.getElementsByName('avatar');
+            for (let a of avatars) {
+                if (a.checked) player.avatar = a.value;
+            }
+
+            player.isRegistered = true;
+            saveData();
+
+            alert("🎉 Selamat datang, Detektif " + player.nickname + "! Siap memecahkan misteri berdasarkan data?");
+            showScreen('home');
+        }
+
+        function checkRegistrationAndPlay() {
+            if (!player.isRegistered) {
+                showScreen('register');
+            } else {
+                showScreen('map');
+            }
+        }
+
+        function updateHUD() {
+            document.getElementById('hud-avatar').innerText = player.avatar || '🕵️';
+            document.getElementById('hud-name').innerText = player.nickname || 'Detektif';
+            document.getElementById('hud-xp').innerText = player.xp || 0;
+            
+            const titleInfo = getTitleByXP(player.xp);
+            document.getElementById('hud-title').innerText = titleInfo.title;
+            document.getElementById('hud-level-badge').innerText = 'Lvl ' + (player.completedMissions.length + 1);
+        }
+
+        function updateHomeState() {
+            document.getElementById('home-avatar').innerText = player.avatar || '🕵️';
+            document.getElementById('home-name').innerText = player.nickname || 'Detektif Cilik';
+            document.getElementById('home-xp').innerText = player.xp || 0;
+            
+            const titleInfo = getTitleByXP(player.xp);
+            document.getElementById('home-title').innerText = titleInfo.title;
+
+            const progressPct = (player.completedMissions.length / 5) * 100;
+            document.getElementById('home-progress-bar').style.width = progressPct + '%';
+            document.getElementById('home-progress-text').innerText = player.completedMissions.length + '/5';
+        }
+
+        function getTitleByXP(xp) {
+            if (xp >= 1501) return { title: "Master Data", rank: "🏆" };
+            if (xp >= 1001) return { title: "Detektif Ahli", rank: "🥇" };
+            if (xp >= 501) return { title: "Detektif Junior", rank: "🥈" };
+            return { title: "Detektif Pemula", rank: "🥉" };
+        }
+
+        function updateMapState() {
+            for (let i = 1; i <= 5; i++) {
+                const card = document.getElementById('map-card-' + i);
+                const status = document.getElementById('map-status-' + i);
+                const isUnlocked = i === 1 || player.completedMissions.includes(i - 1);
+
+                if (isUnlocked) {
+                    card.classList.remove('opacity-60', 'cursor-not-allowed');
+                    card.classList.add('cursor-pointer');
+                    if (player.completedMissions.includes(i)) {
+                        status.className = "text-xs text-green-400 font-bold mt-1";
+                        status.innerText = "✅ Selesai";
+                    } else {
+                        status.className = "text-xs text-sky-400 font-bold mt-1";
+                        status.innerText = "Terbuka";
+                    }
+                } else {
+                    card.classList.add('opacity-60', 'cursor-not-allowed');
+                    status.className = "text-xs text-yellow-500 font-bold mt-1";
+                    status.innerText = "🔒 Terkunci";
+                }
+            }
+        }
+
+        function startMission(missionNum) {
+            playSound('click');
+            const isUnlocked = missionNum === 1 || player.completedMissions.includes(missionNum - 1);
+            if (!isUnlocked) {
+                alert("🔐 Misi ini masih terkunci! Selesaikan misi sebelumnya terlebih dahulu.");
+                return;
+            }
+
+            currentMission = missionNum;
+            currentQuestionIdx = 0;
+            if (missionNum === 1) {
+                sessionScore = 0;
+                sessionCorrectCount = 0;
+                sessionWrongCount = 0;
+                startTime = Date.now();
+                collectedDigits = ["?", "?", "?", "?"];
+            }
+
+            showScreen('gameplay');
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            const mData = missionsData[currentMission];
+            document.getElementById('game-mission-tag').innerText = "MISI " + currentMission;
+            document.getElementById('game-mission-title').innerText = mData.title;
+            document.getElementById('game-theme-text').innerText = "Lokasi: " + mData.themeText;
+            document.getElementById('game-step-counter').innerText = `Soal ${currentQuestionIdx + 1} / ${mData.questions.length}`;
+
+            // Reset UI feedback & next buttons
+            document.getElementById('game-feedback').classList.add('hidden');
+            document.getElementById('btn-game-next').classList.add('hidden');
+
+            // Timer management for Misi 2
+            const timerBox = document.getElementById('timer-box');
+            if (currentMission === 2) {
+                timerBox.classList.remove('hidden');
+                startTimer(60);
+            } else {
+                timerBox.classList.add('hidden');
+                clearInterval(timerInterval);
+            }
+
+            // Hint management for Misi 3
+            const hintBtn = document.getElementById('btn-hint');
+            if (currentMission === 3 && !hintUsed) {
+                hintBtn.classList.remove('hidden');
+            } else {
+                hintBtn.classList.add('hidden');
+            }
+
+            const currentQ = mData.questions[currentQuestionIdx];
+            document.getElementById('game-question-text').innerText = currentQ.q;
+
+            // Render Visual Graphics (Tabel, Bar Chart, Line Chart, Pie Chart)
+            renderVisualData(currentMission, currentQ.type);
+
+            // Render Choice Options
+            const container = document.getElementById('game-options-container');
+            container.innerHTML = '';
+            currentQ.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "p-3.5 rounded-2xl bg-slate-800 hover:bg-slate-700 border-2 border-slate-700 hover:border-sky-400 text-left text-white text-sm sm:text-base font-semibold transition flex items-center justify-between";
+                btn.innerHTML = `<span>${opt}</span> <i class="far fa-circle text-slate-500"></i>`;
+                btn.onclick = () => selectOption(idx, btn);
+                container.appendChild(btn);
+            });
+        }
+
+        function startTimer(seconds) {
+            clearInterval(timerInterval);
+            let time = seconds;
+            document.getElementById('timer-count').innerText = time;
+            timerInterval = setInterval(() => {
+                time--;
+                document.getElementById('timer-count').innerText = time;
+                if (time <= 0) {
+                    clearInterval(timerInterval);
+                    alert("⏰ Waktu habis! Mari coba lagi.");
+                    loadQuestion();
+                }
+            }, 1000);
+        }
+
+        function useHint() {
+            playSound('click');
+            hintUsed = true;
+            document.getElementById('btn-hint').classList.add('hidden');
+            alert("💡 PETUNJUK DETEKTIF: Perhatikan angka pada sumbu tegak (vertikal) dan garis puncak grafik!");
+        }
+
+        function renderVisualData(missionNum, typeOverride) {
+            const visualBox = document.getElementById('game-data-visual');
+            let type = typeOverride;
+
+            if (!type) {
+                if (missionNum === 1) type = 'table';
+                if (missionNum === 2) type = 'bar';
+                if (missionNum === 3) type = 'line';
+                if (missionNum === 4) type = 'pie';
+            }
+
+            if (type === 'table') {
+                visualBox.innerHTML = `
+                    <div class="w-full max-w-md overflow-hidden rounded-2xl border border-slate-700 bg-slate-800/90 shadow-lg">
+                        <div class="bg-blue-600 px-4 py-2 font-bold text-center text-white text-xs sm:text-sm">
+                            Jumlah Pengunjung Perpustakaan Kelas 6
+                        </div>
+                        <table class="w-full text-left text-xs sm:text-sm text-slate-200">
+                            <thead class="bg-slate-700 text-yellow-400 font-bold uppercase border-b border-slate-600">
+                                <tr>
+                                    <th class="p-3">Hari</th>
+                                    <th class="p-3 text-right">Jumlah Pengunjung</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-700/60 font-medium">
+                                <tr class="hover:bg-slate-700/40"><td class="p-2.5 pl-3">Senin</td><td class="p-2.5 pr-3 text-right font-bold text-sky-300">20</td></tr>
+                                <tr class="hover:bg-slate-700/40"><td class="p-2.5 pl-3">Selasa</td><td class="p-2.5 pr-3 text-right font-bold text-sky-300">25</td></tr>
+                                <tr class="hover:bg-slate-700/40"><td class="p-2.5 pl-3">Rabu</td><td class="p-2.5 pr-3 text-right font-bold text-sky-300">18</td></tr>
+                                <tr class="hover:bg-slate-700/40 bg-yellow-500/10"><td class="p-2.5 pl-3 font-bold text-yellow-300">Kamis</td><td class="p-2.5 pr-3 text-right font-bold text-yellow-400">30</td></tr>
+                                <tr class="hover:bg-slate-700/40"><td class="p-2.5 pl-3">Jumat</td><td class="p-2.5 pr-3 text-right font-bold text-sky-300">27</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } else if (type === 'bar') {
+                // SVG Bar Chart
+                visualBox.innerHTML = `
+                    <div class="w-full max-w-md bg-slate-800/90 p-4 rounded-2xl border border-slate-700">
+                        <h4 class="text-xs sm:text-sm font-bold text-yellow-400 text-center mb-2">Diagram Batang: Olahraga Favorit Siswa Kelas 6</h4>
+                        <svg viewBox="0 0 350 180" class="w-full h-auto">
+                            <!-- Y Grid lines -->
+                            <line x1="40" y1="140" x2="330" y2="140" stroke="#334155" stroke-width="1"/>
+                            <line x1="40" y1="100" x2="330" y2="100" stroke="#334155" stroke-dasharray="3,3"/>
+                            <line x1="40" y1="60" x2="330" y2="60" stroke="#334155" stroke-dasharray="3,3"/>
+                            <line x1="40" y1="20" x2="330" y2="20" stroke="#334155" stroke-dasharray="3,3"/>
+                            
+                            <!-- Y Labels -->
+                            <text x="30" y="145" text-anchor="end" fill="#94a3b8" font-size="10">0</text>
+                            <text x="30" y="105" text-anchor="end" fill="#94a3b8" font-size="10">5</text>
+                            <text x="30" y="65" text-anchor="end" fill="#94a3b8" font-size="10">10</text>
+                            <text x="30" y="25" text-anchor="end" fill="#94a3b8" font-size="10">15</text>
+
+                            <!-- Bars -->
+                            <!-- Sepak Bola (12) -->
+                            <rect x="65" y="44" width="35" height="96" rx="4" fill="#3B82F6"/>
+                            <text x="82.5" y="38" text-anchor="middle" fill="#60a5fa" font-size="10" font-weight="bold">12</text>
+                            <text x="82.5" y="155" text-anchor="middle" fill="#cbd5e1" font-size="9">Sepak Bola</text>
+
+                            <!-- Badminton (15) -->
+                            <rect x="135" y="20" width="35" height="120" rx="4" fill="#F59E0B"/>
+                            <text x="152.5" y="14" text-anchor="middle" fill="#fbbf24" font-size="10" font-weight="bold">15</text>
+                            <text x="152.5" y="155" text-anchor="middle" fill="#cbd5e1" font-size="9">Badminton</text>
+
+                            <!-- Basket (8) -->
+                            <rect x="205" y="76" width="35" height="64" rx="4" fill="#10B981"/>
+                            <text x="222.5" y="70" text-anchor="middle" fill="#34d399" font-size="10" font-weight="bold">8</text>
+                            <text x="222.5" y="155" text-anchor="middle" fill="#cbd5e1" font-size="9">Basket</text>
+
+                            <!-- Renang (5) -->
+                            <rect x="275" y="100" width="35" height="40" rx="4" fill="#F97316"/>
+                            <text x="292.5" y="94" text-anchor="middle" fill="#fb923c" font-size="10" font-weight="bold">5</text>
+                            <text x="292.5" y="155" text-anchor="middle" fill="#cbd5e1" font-size="9">Renang</text>
+                        </svg>
+                    </div>
+                `;
+            } else if (type === 'line') {
+                // SVG Line Chart
+                visualBox.innerHTML = `
+                    <div class="w-full max-w-md bg-slate-800/90 p-4 rounded-2xl border border-slate-700">
+                        <h4 class="text-xs sm:text-sm font-bold text-yellow-400 text-center mb-2">Diagram Garis: Buku Dipinjam Selama 5 Hari</h4>
+                        <svg viewBox="0 0 350 180" class="w-full h-auto">
+                            <!-- Grid -->
+                            <line x1="40" y1="150" x2="330" y2="150" stroke="#334155"/>
+                            <line x1="40" y1="110" x2="330" y2="110" stroke="#334155" stroke-dasharray="3,3"/>
+                            <line x1="40" y1="70" x2="330" y2="70" stroke="#334155" stroke-dasharray="3,3"/>
+                            <line x1="40" y1="30" x2="330" y2="30" stroke="#334155" stroke-dasharray="3,3"/>
+
+                            <text x="30" y="154" text-anchor="end" fill="#94a3b8" font-size="10">0</text>
+                            <text x="30" y="114" text-anchor="end" fill="#94a3b8" font-size="10">10</text>
+                            <text x="30" y="74" text-anchor="end" fill="#94a3b8" font-size="10">20</text>
+                            <text x="30" y="34" text-anchor="end" fill="#94a3b8" font-size="10">30</text>
+
+                            <!-- Line Path (Senin=10 y=110, Sel=15 y=90, Rab=12 y=102, Kam=20 y=70, Jum=25 y=50) -->
+                            <polyline points="65,110 130,90 195,102 260,70 315,50" fill="none" stroke="#38BDF8" stroke-width="4" stroke-linecap="round"/>
+
+                            <!-- Points -->
+                            <circle cx="65" cy="110" r="5" fill="#38BDF8"/>
+                            <text x="65" y="100" text-anchor="middle" fill="#7dd3fc" font-size="10" font-weight="bold">10</text>
+                            <text x="65" y="166" text-anchor="middle" fill="#cbd5e1" font-size="9">Senin</text>
+
+                            <circle cx="130" cy="90" r="5" fill="#38BDF8"/>
+                            <text x="130" y="80" text-anchor="middle" fill="#7dd3fc" font-size="10" font-weight="bold">15</text>
+                            <text x="130" y="166" text-anchor="middle" fill="#cbd5e1" font-size="9">Selasa</text>
+
+                            <circle cx="195" cy="102" r="5" fill="#38BDF8"/>
+                            <text x="195" y="92" text-anchor="middle" fill="#7dd3fc" font-size="10" font-weight="bold">12</text>
+                            <text x="195" y="166" text-anchor="middle" fill="#cbd5e1" font-size="9">Rabu</text>
+
+                            <circle cx="260" cy="70" r="5" fill="#38BDF8"/>
+                            <text x="260" y="60" text-anchor="middle" fill="#7dd3fc" font-size="10" font-weight="bold">20</text>
+                            <text x="260" y="166" text-anchor="middle" fill="#cbd5e1" font-size="9">Kamis</text>
+
+                            <circle cx="315" cy="50" r="5" fill="#F59E0B"/>
+                            <text x="315" y="40" text-anchor="middle" fill="#fbbf24" font-size="10" font-weight="bold">25</text>
+                            <text x="315" y="166" text-anchor="middle" fill="#cbd5e1" font-size="9">Jumat</text>
+                        </svg>
+                    </div>
+                `;
+            } else if (type === 'pie') {
+                // SVG Pie Chart
+                visualBox.innerHTML = `
+                    <div class="w-full max-w-md bg-slate-800/90 p-4 rounded-2xl border border-slate-700 flex flex-col items-center">
+                        <h4 class="text-xs sm:text-sm font-bold text-yellow-400 text-center mb-3">Diagram Lingkaran: Hobi Siswa Kelas 6</h4>
+                        <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                            <svg viewBox="0 0 160 160" class="w-36 h-36">
+                                <!-- Sepak Bola 35% (126 deg) -->
+                                <path d="M80,80 L80,10 A70,70 0 0,1 146.5,101.6 Z" fill="#3B82F6"/>
+                                <!-- Membaca 25% (90 deg) -->
+                                <path d="M80,80 L146.5,101.6 A70,70 0 0,1 80,150 Z" fill="#F59E0B"/>
+                                <!-- Menggambar 20% (72 deg) -->
+                                <path d="M80,80 L80,150 A70,70 0 0,1 13.4,101.6 Z" fill="#10B981"/>
+                                <!-- Musik 20% (72 deg) -->
+                                <path d="M80,80 L13.4,101.6 A70,70 0 0,1 80,10 Z" fill="#8B5CF6"/>
+                                <circle cx="80" cy="80" r="25" fill="#1e293b"/>
+                                <text x="80" y="84" text-anchor="middle" fill="#fff" font-size="10" font-weight="bold">DATA</text>
+                            </svg>
+                            <div class="space-y-1.5 text-xs">
+                                <div class="flex items-center space-x-2"><span class="w-3 h-3 bg-blue-500 rounded-sm"></span><span class="text-slate-200">Sepak Bola (35%)</span></div>
+                                <div class="flex items-center space-x-2"><span class="w-3 h-3 bg-yellow-500 rounded-sm"></span><span class="text-slate-200">Membaca (25%)</span></div>
+                                <div class="flex items-center space-x-2"><span class="w-3 h-3 bg-green-500 rounded-sm"></span><span class="text-slate-200">Menggambar (20%)</span></div>
+                                <div class="flex items-center space-x-2"><span class="w-3 h-3 bg-purple-500 rounded-sm"></span><span class="text-slate-200">Bermain Musik (20%)</span></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function selectOption(index, btnElement) {
+            const mData = missionsData[currentMission];
+            const currentQ = mData.questions[currentQuestionIdx];
+
+            // Disable all option buttons
+            const allBtns = document.querySelectorAll('#game-options-container button');
+            allBtns.forEach(b => b.disabled = true);
+
+            const feedback = document.getElementById('game-feedback');
+            feedback.classList.remove('hidden');
+
+            if (index === currentQ.correct) {
+                playSound('correct');
+                btnElement.classList.remove('bg-slate-800', 'border-slate-700');
+                btnElement.classList.add('bg-green-600/30', 'border-green-500', 'text-green-300');
+                btnElement.querySelector('i').className = "fas fa-check-circle text-green-400";
+
+                const pointsAwarded = currentMission === 4 ? 200 : 100;
+                sessionScore += pointsAwarded;
+                sessionCorrectCount++;
+
+                feedback.className = "p-4 rounded-2xl bg-green-500/20 border-2 border-green-500 text-green-300 font-bold text-center";
+                feedback.innerHTML = `
+                    <div class="text-xl">🎉 HEBAT! Jawabanmu Benar!</div>
+                    <div class="text-xs text-green-200 font-normal">+${pointsAwarded} XP Petunjuk Ditemukan!</div>
+                `;
+
+                if (currentMission === 5 && currentQ.digit) {
+                    collectedDigits[currentQuestionIdx] = currentQ.digit;
+                }
+            } else {
+                playSound('wrong');
+                btnElement.classList.remove('bg-slate-800', 'border-slate-700');
+                btnElement.classList.add('bg-red-600/30', 'border-red-500', 'text-red-300');
+                btnElement.querySelector('i').className = "fas fa-times-circle text-red-400";
+
+                sessionWrongCount++;
+
+                feedback.className = "p-4 rounded-2xl bg-red-500/20 border-2 border-red-500 text-red-300 font-bold text-center";
+                feedback.innerHTML = `
+                    <div class="text-xl">❌ Belum Tepat!</div>
+                    <div class="text-xs text-red-200 font-normal">Perhatikan kembali data pada grafik / tabel.</div>
+                `;
+            }
+
+            document.getElementById('btn-game-next').classList.remove('hidden');
+        }
+
+        function nextQuestion() {
+            playSound('click');
+            const mData = missionsData[currentMission];
+            currentQuestionIdx++;
+
+            if (currentQuestionIdx < mData.questions.length) {
+                loadQuestion();
+            } else {
+                // Mission Completed
+                clearInterval(timerInterval);
+                if (!player.completedMissions.includes(currentMission)) {
+                    player.completedMissions.push(currentMission);
+                }
+                player.xp += sessionScore;
+                saveData();
+
+                if (currentMission === 4) {
+                    triggerConfetti();
+                    alert("🔓 Brankas berhasil dibuka! Kamu menemukan kode menuju misi terakhir!");
+                }
+
+                if (currentMission === 5) {
+                    // Go to Vault Keypad Input
+                    showBossVaultScreen();
+                } else {
+                    alert(`⭐ Misi ${currentMission} berhasil dianalisis! Petunjuk ditemukan!`);
+                    showScreen('map');
+                }
+            }
+        }
+
+        function showBossVaultScreen() {
+            showScreen('boss-vault');
+            document.getElementById('code-1').value = collectedDigits[0] || "7";
+            document.getElementById('code-2').value = collectedDigits[1] || "3";
+            document.getElementById('code-3').value = collectedDigits[2] || "9";
+            document.getElementById('code-4').value = collectedDigits[3] || "2";
+        }
+
+        function unlockVault() {
+            playSound('fanfare');
+            triggerConfetti();
+            setTimeout(() => {
+                showResultScreen();
+            }, 1000);
+        }
+
+        function showResultScreen() {
+            showScreen('result');
+
+            document.getElementById('res-avatar').innerText = player.avatar || '🕵️';
+            document.getElementById('res-name').innerText = player.fullname || 'Detektif';
+            document.getElementById('res-score').innerText = player.xp.toLocaleString();
+            
+            const totalQ = 11;
+            document.getElementById('res-correct').innerText = `${sessionCorrectCount} / ${totalQ}`;
+            const acc = Math.round((sessionCorrectCount / totalQ) * 100);
+            document.getElementById('res-accuracy').innerText = `${isNaN(acc) ? 100 : acc}%`;
+
+            // Calculate played time
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
+            const secs = String(elapsed % 60).padStart(2, '0');
+            document.getElementById('res-time').innerText = `${mins}:${secs}`;
+
+            const titleObj = getTitleByXP(player.xp);
+            document.getElementById('res-badge-title').innerText = `${titleObj.rank} ${titleObj.title.toUpperCase()}`;
+        }
+
+        function restartGame() {
+            player.completedMissions = [];
+            player.xp = 0;
+            saveData();
+            startMission(1);
+        }
+
+        function showLeaderboard() {
+            showScreen('leaderboard');
+            filterLeaderboard('all');
+        }
+
+        function filterLeaderboard(filter) {
+            playSound('click');
+            ['today', 'week', 'all'].forEach(t => {
+                const tab = document.getElementById('tab-' + t);
+                if (t === filter) {
+                    tab.className = "px-4 py-1.5 rounded-lg text-xs font-bold bg-yellow-500 text-slate-900 transition";
+                } else {
+                    tab.className = "px-4 py-1.5 rounded-lg text-xs font-bold text-slate-300 hover:text-white transition";
+                }
+            });
+
+            const dummyLeaderboard = [
+                { name: "Alya N.", score: 1850, title: "Master Data", avatar: "👩‍🔬", rank: 1 },
+                { name: "Bima K.", score: 1700, title: "Master Data", avatar: "👨‍🚀", rank: 2 },
+                { name: "Citra P.", score: 1550, title: "Master Data", avatar: "🧑‍💻", rank: 3 },
+                { name: "Dafa R.", score: 1400, title: "Detektif Ahli", avatar: "🕵️", rank: 4 },
+                { name: "Eka S.", score: 1250, title: "Detektif Ahli", avatar: "👩‍🔬", rank: 5 }
+            ];
+
+            // Append active player
+            let listData = [...dummyLeaderboard];
+            if (player.isRegistered) {
+                listData.push({
+                    name: player.nickname + " (Kamu)",
+                    score: player.xp,
+                    title: getTitleByXP(player.xp).title,
+                    avatar: player.avatar,
+                    rank: 0
+                });
+            }
+
+            listData.sort((a, b) => b.score - a.score);
+
+            const container = document.getElementById('leaderboard-list');
+            container.innerHTML = '';
+            listData.forEach((item, index) => {
+                const rankNum = index + 1;
+                let medal = `#${rankNum}`;
+                if (rankNum === 1) medal = "🥇";
+                if (rankNum === 2) medal = "🥈";
+                if (rankNum === 3) medal = "🥉";
+
+                const isCurrent = item.name.includes("(Kamu)");
+                const row = document.createElement('div');
+                row.className = `p-3 rounded-xl flex items-center justify-between border ${isCurrent ? 'bg-yellow-500/20 border-yellow-400' : 'bg-slate-800/80 border-slate-700'}`;
+                row.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <span class="text-lg font-bold w-6 text-center">${medal}</span>
+                        <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-lg">${item.avatar}</div>
+                        <div>
+                            <div class="font-bold text-white text-xs sm:text-sm">${item.name}</div>
+                            <div class="text-[10px] text-slate-400">${item.title}</div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="font-extrabold text-yellow-400 text-sm sm:text-base">${item.score.toLocaleString()}</span>
+                        <span class="text-[10px] text-slate-400 block">XP</span>
+                    </div>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function showDiscussionModal() {
+            playSound('click');
+            const container = document.getElementById('discussion-content');
+            container.innerHTML = '';
+
+            for (let mKey in missionsData) {
+                const m = missionsData[mKey];
+                const box = document.createElement('div');
+                box.className = "bg-slate-800/90 p-4 rounded-2xl border border-slate-700 space-y-2";
+                let html = `<h4 class="font-bold text-yellow-400 text-sm">Misi ${mKey}: ${m.title}</h4>`;
+                
+                m.questions.forEach((q, idx) => {
+                    html += `
+                        <div class="text-xs space-y-1 bg-slate-900/60 p-2.5 rounded-xl border border-slate-700/60">
+                            <div class="font-semibold text-white">Soal ${idx + 1}: ${q.q}</div>
+                            <div class="text-green-400 font-bold">Kunci Jawaban: ${q.options[q.correct]}</div>
+                            <div class="text-slate-300">💡 Penjelasan: ${q.explanation}</div>
+                        </div>
+                    `;
+                });
+                box.innerHTML = html;
+                container.appendChild(box);
+            }
+
+            document.getElementById('modal-discussion').classList.remove('hidden');
+        }
+
+        function showProfile() {
+            showScreen('profile');
+            document.getElementById('prof-avatar').innerText = player.avatar || '🕵️';
+            document.getElementById('prof-name').innerText = player.fullname || 'Detektif';
+            document.getElementById('prof-class').innerText = `Kelas ${player.class || '6A'} • No. Absen ${player.absent || '1'}`;
+            document.getElementById('prof-xp').innerText = (player.xp || 0).toLocaleString();
+            document.getElementById('prof-title').innerText = getTitleByXP(player.xp).title;
+            document.getElementById('prof-missions').innerText = `${player.completedMissions.length} / 5 Misi`;
+        }
+
+        function resetGameData() {
+            if (confirm("Apakah kamu yakin ingin mereset seluruh kemajuan game?")) {
+                localStorage.removeItem('detektif_data_user');
+                location.reload();
+            }
+        }
+
+        function triggerConfetti() {
+            const canvas = document.getElementById('confetti-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const particles = [];
+            const colors = ['#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#8b5cf6'];
+
+            for (let i = 0; i < 120; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height - canvas.height,
+                    size: Math.random() * 8 + 4,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    vy: Math.random() * 5 + 3,
+                    vx: Math.random() * 2 - 1
+                });
+            }
+
+            let animationFrame;
+            function render() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                particles.forEach(p => {
+                    p.y += p.vy;
+                    p.x += p.vx;
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(p.x, p.y, p.size, p.size);
+                });
+
+                if (particles.some(p => p.y < canvas.height)) {
+                    animationFrame = requestAnimationFrame(render);
+                } else {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+            }
+            render();
+        }
+    </script>
+</body>
+</html>
